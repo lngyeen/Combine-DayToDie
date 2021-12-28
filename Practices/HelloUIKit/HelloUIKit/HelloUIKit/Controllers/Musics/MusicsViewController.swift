@@ -6,38 +6,37 @@
 //  Copyright © 2020 Fx Studio. All rights reserved.
 //
 
-import UIKit
 import Combine
+import UIKit
 
 class MusicsViewController: UIViewController {
+    // Outlets
+    @IBOutlet var tableView: UITableView!
   
-  // Outlets
-  @IBOutlet weak var tableView: UITableView!
-  
-  // Properties
-  var musics: [Music] = [] {
-    didSet {
-      self.tableView.reloadData()
+    // Properties
+    var musics: [Music] = [] {
+        didSet {
+            self.tableView.reloadData()
+        }
     }
-  }
       
-  private var subscriptions = Set<AnyCancellable>()
+    private var subscriptions = Set<AnyCancellable>()
   
-  private var api = APIMusic()
+    private var api = APIMusic()
   
-  override func viewDidLoad() {
-    super.viewDidLoad()
+    override func viewDidLoad() {
+        super.viewDidLoad()
     
-    // Title
-    title = "Musics"
+        // Title
+        title = "Musics"
     
-    // TableView
-    tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
-    tableView.delegate = self
-    tableView.dataSource = self
+        // TableView
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+        tableView.delegate = self
+        tableView.dataSource = self
     
-    // fetch
-    // sink
+        // fetch
+        // sink
 //    api.comingSoon(limit: 100)
 //      .receive(on: DispatchQueue.main)
 //      .sink(receiveCompletion: { completion in
@@ -51,29 +50,28 @@ class MusicsViewController: UIViewController {
 //        self.musics = apiResult.feed.results
 //      }.store(in: &subscriptions)
     
-    // assign
-    api.comingSoon(limit: 100)
-      .receive(on: DispatchQueue.main)
-      .map { $0.feed.results }
-      .catch{ _ in Empty() }
-      .assign(to: \.musics, on: self)
-      .store(in: &subscriptions)
-  }
-  
+        // assign
+        api.comingSoon(limit: 100)
+            .receive(on: DispatchQueue.main)
+            .map { $0.feed.results }
+            .catch { a in Empty() }
+            .assign(to: \.musics, on: self)
+            .store(in: &subscriptions)
+    }
 }
 
 // UITableView Delegate & DataSource
 extension MusicsViewController: UITableViewDelegate, UITableViewDataSource {
-  func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-    musics.count
-  }
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        musics.count
+    }
   
-  func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-    let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
     
-    let item = musics[indexPath.row]
-    cell.textLabel?.text = item.name
+        let item = musics[indexPath.row]
+        cell.textLabel?.text = item.name
     
-    return cell
-  }
+        return cell
+    }
 }

@@ -228,6 +228,7 @@ func measureInterval() {
     let measureSubject = subject.measureInterval(using: DispatchQueue.main)
     let measureSubject2 = subject.measureInterval(using: RunLoop.main)
     
+    
     //subscription
     subject
         .sink { string in
@@ -236,14 +237,14 @@ func measureInterval() {
         .store(in: &subscriptions)
     
     measureSubject
-        .sink { string in
-            print("\(printDate()) - 🔴 : \(string)")
+        .sink { stride in
+            print("\(printDate()) - 🔴 : \(stride)")
         }
         .store(in: &subscriptions)
     
     measureSubject2
-        .sink { string in
-            print("\(printDate()) - 🔶 : \(string)")
+        .sink { stride in
+            print("\(printDate()) - 🔶 : \(stride)")
         }
         .store(in: &subscriptions)
     
@@ -257,6 +258,15 @@ func measureInterval() {
     }
 }
 
+
+//delay()
+//
+//collect()
+//
+//debounce()
+//
+//throttle()
+//
+//timeout()
+
 measureInterval()
-
-

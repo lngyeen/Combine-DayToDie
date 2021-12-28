@@ -26,147 +26,144 @@
 /// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 /// THE SOFTWARE.
 
-import UIKit
 import Combine
+import UIKit
 
 class MainViewController: UIViewController {
+    // MARK: - Outlets
   
-  // MARK: - Outlets
-  
-  @IBOutlet weak var imagePreview: UIImageView! {
-    didSet {
-      imagePreview.layer.borderColor = UIColor.gray.cgColor
-    }
-  }
-  @IBOutlet weak var buttonClear: UIButton!
-  @IBOutlet weak var buttonSave: UIButton!
-  @IBOutlet weak var itemAdd: UIBarButtonItem!
-  
-  // MARK: - Private properties
-  private var subscriptions = Set<AnyCancellable>()
-  // đây là biến tạo ra để `store` tất cả các subscription. Và khi vòng đời của 1 VC kết thúc thì tất cả chúng nó sẽ bị huỹ --> Khỏi lo lắng vấn đề bộ nhớ.
-  
-  private let images = CurrentValueSubject<[UIImage], Never>([])
-  // Dùng để gởi đi 1 image tới UI Control. Và nếu bạn thường xuyên thực hiện công việc này trong VC thì lời khuyên cho bạn nên sử dụng CurrentValueSubject, vì:
-  // - Đảm bảo được luôn có 1 giá trị nhận được khi có 1 subscriber subscribe tới nó
-  // - Không fail, không cancel
-  
-  
-  
-  // MARK: - View controller
-  
-  override func viewDidLoad() {
-    super.viewDidLoad()
-    let collageSize = imagePreview.frame.size
-    
-    // Bắt đầu subscription nào
-    images
-      .handleEvents(receiveOutput: { [weak self] photos in
-        self?.updateUI(photos: photos)
-      })
-      // Biến đổi Input của subject là Array[UIImage] thành UIImage
-      .map { photos in
-        // Đây là extention bọn nó viết giúp việc tạo ra 1 cái ảnh mới từ các ảnh trong array
-        UIImage.collage(images: photos, size: collageSize)
-      }
-      // Sử dụng ASSIGN để subscriber tới thuộc tính image của đối tượng `imagePreview`
-      .assign(to: \.image, on: imagePreview)
-      //lưu trữ subscription --> để auto huỹ
-      .store(in: &subscriptions)
-  }
-  
-  private func updateUI(photos: [UIImage]) {
-    buttonSave.isEnabled = photos.count > 0 && photos.count % 2 == 0
-    buttonClear.isEnabled = photos.count > 0
-    itemAdd.isEnabled = photos.count < 6
-    title = photos.count > 0 ? "\(photos.count) photos" : "Collage"
-  }
-  
-  // MARK: - Actions
-  
-  @IBAction func actionClear() {
-    images.send([])
-    // reset toàn bộ ảnh thì chỉ cần dùng subject send đi 1 array rỗng
-  }
-  
-  @IBAction func actionSave() {
-    guard let image = imagePreview.image else { return }
-    
-    PhotoWriter.save(image)
-      .sink(receiveCompletion: { [unowned self] completion in
-        if case .failure(let error) = completion {
-          //self.showMessage("Error", description: error.localizedDescription)
-          
-          self.alert(title: "Error", text: error.localizedDescription)
-            .sink { _ in
-              // tự sướng trong này
-          }
-          .store(in: &self.subscriptions)
-          
+    @IBOutlet var imagePreview: UIImageView! {
+        didSet {
+            imagePreview.layer.borderColor = UIColor.gray.cgColor
         }
-        
-        self.actionClear()
-        
-      }) { [unowned self] id in
-        //self.showMessage("Saved with id: \(id)")
-        
-        self.alert(title: "Error", text: "").sink { _ in
-          // tự sướng trong này
-        }.store(in: &self.subscriptions)
-      }
-      .store(in: &subscriptions)
-    
-  }
-  
-  @IBAction func actionAdd() {
-    //let newImages = images.value + [UIImage(named: "IMG_1907.jpg")!]
-    // Sẽ lấy array image từ subject và công thêm 1 image mới
-    
-    //images.send(newImages)
-    // Subject sẽ send cả array image đó đi
-    
-    ///////
-    let photos = storyboard!.instantiateViewController( withIdentifier: "PhotosViewController") as!
-    PhotosViewController
-    
-    // Title
-    photos.$selectedPhotosCount
-      .filter { $0 > 0 }
-      .map { "Selected \($0) photos" }
-      .assign(to: \.title, on: self)
-      .store(in: &subscriptions)
-    
-    // publisher
-    let newPhotos = photos.selectedPhotos
-      .prefix(while: { [unowned self] _ in
-        return self.images.value.count < 6
-    }) .share()
-    
-    // emit images
-    newPhotos
-      .map { [unowned self] newImage in
-        return self.images.value + [newImage]
     }
-    .assign(to: \.value, on: images)
-    .store(in: &subscriptions)
-    
-    // update UI
-    newPhotos
-      .ignoreOutput()
-      .delay(for: 2.0, scheduler: DispatchQueue.main)
-      .sink(receiveCompletion: { [unowned self] _ in
-        self.updateUI(photos: self.images.value)
-      }) { _ in }
-      .store(in: &subscriptions)
-    
-    navigationController!.pushViewController(photos, animated: true)
-  }
+
+    @IBOutlet var buttonClear: UIButton!
+    @IBOutlet var buttonSave: UIButton!
+    @IBOutlet var itemAdd: UIBarButtonItem!
   
-  private func showMessage(_ title: String, description: String? = nil) {
-    let alert = UIAlertController(title: title, message: description, preferredStyle: .alert)
-    alert.addAction(UIAlertAction(title: "Close", style: .default, handler: { alert in
-      self.dismiss(animated: true, completion: nil)
-    }))
-    present(alert, animated: true, completion: nil)
-  }
+    // MARK: - Private properties
+
+    private var subscriptions = Set<AnyCancellable>()
+    // đây là biến tạo ra để `store` tất cả các subscription. Và khi vòng đời của 1 VC kết thúc thì tất cả chúng nó sẽ bị huỹ --> Khỏi lo lắng vấn đề bộ nhớ.
+  
+    private let images = CurrentValueSubject<[UIImage], Never>([])
+    // Dùng để gởi đi 1 image tới UI Control. Và nếu bạn thường xuyên thực hiện công việc này trong VC thì lời khuyên cho bạn nên sử dụng CurrentValueSubject, vì:
+    // - Đảm bảo được luôn có 1 giá trị nhận được khi có 1 subscriber subscribe tới nó
+    // - Không fail, không cancel
+  
+    // MARK: - View controller
+  
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        let collageSize = imagePreview.frame.size
+    
+        // Bắt đầu subscription nào
+        images
+            .handleEvents(receiveOutput: { [weak self] photos in
+                self?.updateUI(photos: photos)
+            })
+            // Biến đổi Input của subject là Array[UIImage] thành UIImage
+            .map { photos in
+                // Đây là extention bọn nó viết giúp việc tạo ra 1 cái ảnh mới từ các ảnh trong array
+                UIImage.collage(images: photos, size: collageSize)
+            }
+            // Sử dụng ASSIGN để subscriber tới thuộc tính image của đối tượng `imagePreview`
+            .assign(to: \.image, on: imagePreview)
+            // lưu trữ subscription --> để auto huỹ
+            .store(in: &subscriptions)
+    }
+  
+    private func updateUI(photos: [UIImage]) {
+        buttonSave.isEnabled = photos.count > 0 && photos.count % 2 == 0
+        buttonClear.isEnabled = photos.count > 0
+        itemAdd.isEnabled = photos.count < 6
+        title = photos.count > 0 ? "\(photos.count) photos" : "Collage"
+    }
+  
+    // MARK: - Actions
+  
+    @IBAction func actionClear() {
+        images.send([])
+        // reset toàn bộ ảnh thì chỉ cần dùng subject send đi 1 array rỗng
+    }
+  
+    @IBAction func actionSave() {
+        guard let image = imagePreview.image else { return }
+    
+        PhotoWriter.save(image)
+            .sink(receiveCompletion: { [unowned self] completion in
+                if case .failure(let error) = completion {
+                    // self.showMessage("Error", description: error.localizedDescription)
+          
+                    self.alert(title: "Error", text: error.localizedDescription)
+                        .sink { _ in
+                            // tự sướng trong này
+                        }
+                        .store(in: &self.subscriptions)
+                }
+        
+                self.actionClear()
+        
+            }) { [unowned self] id in
+                 self.showMessage("Saved with id: \(id)")
+        
+//                self.alert(title: "Error", text: "").sink { _ in
+//                    // tự sướng trong này
+//                }.store(in: &self.subscriptions)
+            }
+            .store(in: &subscriptions)
+    }
+  
+    @IBAction func actionAdd() {
+        // let newImages = images.value + [UIImage(named: "IMG_1907.jpg")!]
+        // Sẽ lấy array image từ subject và công thêm 1 image mới
+    
+        // images.send(newImages)
+        // Subject sẽ send cả array image đó đi
+    
+        ///////
+        let photos = storyboard!.instantiateViewController(withIdentifier: "PhotosViewController") as!
+            PhotosViewController
+    
+        // Title
+        photos.$selectedPhotosCount
+            .filter { $0 > 0 }
+            .map { "Selected \($0) photos" }
+            .assign(to: \.title, on: self)
+            .store(in: &subscriptions)
+    
+        // publisher
+        let newPhotos = photos.selectedPhotos
+            .prefix(while: { [unowned self] _ in
+                self.images.value.count < 6
+            }).share()
+    
+        // emit images
+        newPhotos
+            .map { [unowned self] newImage in
+                self.images.value + [newImage]
+            }
+            .assign(to: \.value, on: images)
+            .store(in: &subscriptions)
+    
+        // update UI
+        newPhotos
+            .ignoreOutput()
+            .delay(for: 2.0, scheduler: DispatchQueue.main)
+            .sink(receiveCompletion: { [unowned self] _ in
+                self.updateUI(photos: self.images.value)
+            }) { _ in }
+            .store(in: &subscriptions)
+    
+        navigationController!.pushViewController(photos, animated: true)
+    }
+  
+    private func showMessage(_ title: String, description: String? = nil) {
+        let alert = UIAlertController(title: title, message: description, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Close", style: .default, handler: { _ in
+            self.dismiss(animated: true, completion: nil)
+        }))
+        present(alert, animated: true, completion: nil)
+    }
 }

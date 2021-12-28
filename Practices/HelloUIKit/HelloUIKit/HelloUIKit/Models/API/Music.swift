@@ -9,17 +9,24 @@
 import Foundation
 
 struct Music: Codable {
-  var name: String
-  var id: String
-  var artistName: String
-  var artworkUrl100: String
+    var name: String
+    var id: String
+    var artistName: String
+    var artworkUrl100: String
+    
+    enum CodingKeys: String, CodingKey {
+        case name
+        case id
+        case artistName
+        case artworkUrl100
+    }
 }
 
 struct MusicResults: Codable {
-  var results: [Music]
-  var updated: String
+    var results: [Music]
+    var updated: String
 }
 
 struct FeedResults: Codable {
-  var feed: MusicResults
+    var feed: MusicResults
 }
